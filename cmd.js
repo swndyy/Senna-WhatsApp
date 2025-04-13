@@ -571,6 +571,7 @@ ${Object.entries(node)
                         var numUpper = (mytext.match(/case '/g) || []).length;
                         return numUpper;
                     };
+                    let limit = db.list().user[m.sender].limit
                     let cap = `*User Information* : 
 > data from ${m.pushName} account..
  ֺ ⤿ @${m.sender.split("@")[0]}
@@ -612,9 +613,7 @@ ${Object.entries(node)
 *Owner Tools*
 14. ping  
 15. owner`
-                    let {
-                        key
-                    } = sock.sendMessage(m.cht, {
+                    let keyword = await sock.sendMessage(m.cht, {
                         video: {
                             url: "https://files.catbox.moe/pxdic5.mp4"
                         },
@@ -626,6 +625,7 @@ ${Object.entries(node)
                     }, {
                         quoted: m
                     })
+                    
                     await sock.sendMessage(m.cht, {
                         audio: {
                             url: "https://files.catbox.moe/e90xls.mp4"
@@ -633,7 +633,7 @@ ${Object.entries(node)
                         mimetype: 'audio/mpeg',
                         ptt: true
                     }, {
-                        quoted: key
+                        quoted: keyword
                     })
                 }
                 break
