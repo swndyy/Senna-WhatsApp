@@ -1,4 +1,4 @@
-//- Serialize by Hisoka Dika Ardnt
+//- Serialize by Hisoka Dika Ardnt 🌵
 
 const {
   jidNormalizedUser,
