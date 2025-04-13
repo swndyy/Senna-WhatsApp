@@ -44,7 +44,7 @@ module.exports = async (messages, sock, store) => {
     m.id = m.key.id;
     m.isBot =
       m?.id.startsWith("BAE5") ||
-      m?.id.startsWith("NEK0") ||
+      m?.id.startsWith("SENA") ||
       m?.id.indexOf("-") > 1 ||
       m?.id.startsWith("3EB0") || false
     m.isGroup = m.cht.endsWith("@g.us");
