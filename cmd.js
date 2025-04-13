@@ -355,7 +355,7 @@ Harap masukkan perintah dengan format berikut:
                 case 'igdl':
                 case 'instagram': {
                     let input = m.isQuoted ? m.quoted.body : text;
-                    const regex = /(https:\/\/(vm\.tiktok\.com\/[a-zA-Z0-9._-]+\/|www\.tiktok\.com\/@[\w._-]+\/video\/\d+|www\.instagram\.com\/reel\/[a-zA-Z0-9._-]+\/))/g;
+                    const regex = /(https:\/\/(vt\.tiktok\.com\/[a-zA-Z0-9._-]+\/|vm\.tiktok\.com\/[a-zA-Z0-9._-]+\/|www\.tiktok\.com\/@[\w._-]+\/video\/\d+|www\.instagram\.com\/reel\/[a-zA-Z0-9._-]+\/))/g;
                     const matches = input.match(regex);
 
 
