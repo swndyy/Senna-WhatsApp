@@ -523,7 +523,7 @@ ${Object.entries(node)
                 case 'script':
                 case 'sc': {
                     let data = await axios
-                        .get("https://api.github.com/repos/swndyy/Lilychanj-WhatsApp")
+                        .get("https://api.github.com/repos/swndyy/Senna-WhatsApp")
                         .then((a) => a.data);
 
                     let cap = "*ㅡ> Informasi Script Bot*\n\n";
