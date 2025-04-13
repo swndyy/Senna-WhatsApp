@@ -102,7 +102,8 @@
     console.log(chalk.green.bold(`
  --------------------------------------
   ☘️ Welcome to the Dashboard  
-  Thank you for using this script. Your support inspires us to keep improving!  
+  Thank you for using this script.
+  Your support inspires us to keep improving!  
  --------------------------------------
  `));
 

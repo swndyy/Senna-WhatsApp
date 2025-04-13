@@ -23,9 +23,6 @@ module.exports = async (m, sock, store) => {
     try {
         await db.main(m);
         if (m.isBot) return;
-        if (db.list().settings.self && !m.isOwner) return;
-        if (m.isGroup && db.list().group[m.cht]?.mute && !m.isOwner) return;
-        if (m.isGroup && db.list().group[m.cht]?.banchat && !m.isOwner) return;
 
         if (Object.keys(store.groupMetadata).length === 0) {
             store.groupMetadata = await sock.groupFetchAllParticipating();
@@ -41,6 +38,18 @@ module.exports = async (m, sock, store) => {
         const text = m.text;
         const usedPrefix = m.prefix && arrayPrefix;
         const isCmd = usedPrefix && m.command;
+        
+        if (db.list().group[m.cht]?.event?.banchat) {
+          if (!m.isOwner) {
+            return;
+          }
+        }
+        
+        if (db.list().group[m.cht]?.event?.mute) {
+          if (!isAdmin && !m.isOwner) {
+            return;
+          }
+        }        
 
         if (isCmd) {
             switch (m.command) {
