@@ -2,9 +2,15 @@ const config = require("./settings.js");
 const Func = require("./app/function.js");
 const Uploader = require("./app/uploader.js");
 const pkg = require(process.cwd() + "/package.json");
-const { writeExif } = require(process.cwd() + "/app/sticker");
+const {
+    writeExif
+} = require(process.cwd() + "/app/sticker");
 // Core Modules (Bawaan Node.js)
-const { exec, spawn, execSync } = require("child_process")
+const {
+    exec,
+    spawn,
+    execSync
+} = require("child_process")
 const crypto = require('crypto');
 const fs = require("node:fs");
 const os = require('node:os');
@@ -18,6 +24,9 @@ const cron = require('node-cron');
 const fetch = require('node-fetch');
 const FormData = require('form-data');
 const moment = require("moment-timezone");
+const schedule = require('node-schedule');
+
+const timeZone = 'Asia/Jakarta';
 
 module.exports = async (m, sock, store) => {
     try {
@@ -38,18 +47,53 @@ module.exports = async (m, sock, store) => {
         const text = m.text;
         const usedPrefix = m.prefix && arrayPrefix;
         const isCmd = usedPrefix && m.command;
-        
+
+        const checkGroupsStatus = async (sock) => {
+            const currentTime = moment().tz(timeZone).format('HH:mm');
+
+            for (const chatId of Object.keys(db.list().group)) {
+                const chat = db.list().group[chatId];
+                if (!chat.autoGc) continue;
+
+                const {
+                    closeTime,
+                    openTime
+                } = chat.autoGc;
+                const currentHour = moment().tz(timeZone).hour();
+
+                if (currentHour === closeTime && chat.groupStatus !== 'closed') {
+                    await sock.groupSettingUpdate(chatId, 'announcement');
+                    await sock.sendMessage(chatId, {
+                        text: `📢 *[ PEMBERITAHUAN ]*  \nGrup akan dibuka pada pukul *${openTime}:00 WIB* . Mohon tetap tenang dan tertib sementara menunggu. Terima kasih atas pengertiannya! 😊`
+                    });
+                    chat.groupStatus = 'closed';
+                }
+
+                if (currentHour === openTime && chat.groupStatus !== 'opened') {
+                    await sock.groupSettingUpdate(chatId, 'not_announcement');
+                    await sock.sendMessage(chatId, {
+                        text: `📢 *[ PEMBERITAHUAN ]*\nGrup akan ditutup pada pukul *${closeTime}:00 WIB* sesuai jadwal. Terima kasih atas pengertiannya! 😊`
+                    });
+                    chat.groupStatus = 'opened';
+                }
+            }
+        };
+
+        schedule.scheduleJob('* * * * *', () => {
+            checkGroupsStatus(sock);
+        });
+
         if (db.list().group[m.cht]?.event?.banchat) {
-          if (!m.isOwner) {
-            return;
-          }
+            if (!m.isOwner) {
+                return;
+            }
         }
-        
+
         if (db.list().group[m.cht]?.event?.mute) {
-          if (!isAdmin && !m.isOwner) {
-            return;
-          }
-        }        
+            if (!isAdmin && !m.isOwner) {
+                return;
+            }
+        }
 
         if (isCmd) {
             switch (m.command) {
@@ -115,9 +159,7 @@ module.exports = async (m, sock, store) => {
                     });
                 }
                 break
-                case 'event':
-                case 'group':
-                case 'gc': {
+                case 'event': {
                     if (!isAdmin) return m.reply(config.messages.admin)
                     const eventCategories = [
                         "welcome",
@@ -133,7 +175,7 @@ Harap masukkan perintah dengan format berikut:
 *${m.prefix + m.command} enable welcome* 
 
 > *– 乂 Kategori Tersedia:* 
-> *Event:* ${eventCategories.join("\n> ")}`)
+${eventCategories.join("\n> ")}`)
                     if (args[0] === 'enable') {
                         if (args.length < 2) return m.reply(`⚠️ *Format Salah!*\nGunakan: \`${m.prefix + m.command} enable [category]\`\n📝 *Contoh:* \`${m.prefix + m.command} enable welcome\``);
                         if (args[1] === 'welcome') {
@@ -151,6 +193,142 @@ Harap masukkan perintah dengan format berikut:
                             chat.left = false
                             m.reply(`✅ *Left berhasil dinonaktifkan!*\nSekarang, Shizuku tidak akan lagi mengirim ucapan selamat tinggal kepada member yang keluar. `)
                         }
+                    }
+                }
+                break
+                case 'group':
+                case 'gc': {
+                    if (!isAdmin) return m.reply(config.messages.admin)
+                    if (!text)
+                        throw `*– 乂 Cara Penggunaan:*\n
+> *🔓* Gunakan \`open\` untuk membuka grup. Member dapat mengirim pesan dan berinteraksi dengan bebas.\n
+> *🔒* Gunakan \`close\` untuk menutup grup. Hanya admin yang dapat mengirim pesan, member akan dibatasi.\n\n
+*– 乂 Contoh Penggunaan:*\n
+> *-* *${m.prefix + m.command} open* - Untuk membuka grup\n
+> *-* *${m.prefix + m.command} close* - Untuk menutup grup\n\n
+*– 乂 Penting!*\n
+> *📌* Jika grup dibuka, semua member dapat berinteraksi.\n
+> *📌* Jika grup ditutup, hanya admin yang dapat mengirim pesan.`;
+
+                    await sock
+                        .groupSettingUpdate(
+                            m.cht,
+                            text === "open" ? "not_announcement" : "announcement",
+                        )
+                        .then(() =>
+                            m.reply(
+                                `> ✅ *Berhasil ${text === "open" ? "membuka" : "menutup"} grup!* ${text === "open" ? "Sekarang member bisa mengirim pesan." : "Hanya admin yang dapat mengirim pesan sekarang."}`,
+                            ),
+                        );
+                }
+                break
+                case 'linkgc':
+                case 'linkgroup':
+                case 'gclink': {
+                    try {
+                        let link =
+                            "https://chat.whatsapp.com/" + (await sock.groupInviteCode(m.cht));
+                        let caption = `*– 乂 Informasi Tautan Grup*\n\n`;
+                        caption += `> *- Nama Grup :* ${m.metadata.subject}\n`;
+                        caption += `> *- Tautan :* ${link}\n\n`;
+                        caption += `📌 _Gunakan tautan ini dengan bijak untuk menjaga keamanan grup._`;
+
+                        m.reply(caption);
+                    } catch (error) {
+                        m.reply(
+                            `*❌ Gagal Mendapatkan Link!*\n\n> Pastikan bot memiliki hak admin untuk membuat tautan grup.`,
+                        );
+                    }
+                }
+                break
+                case 'promote': {
+                    if (!isAdmin) return m.reply(config.messages.admin)
+                    let who = m.quoted ?
+                        m.quoted.sender :
+                        m.mentions.length > 0 ?
+                        m.mentions[0] :
+                        false;
+
+                    if (!who)
+                        throw `*🚫 Perintah Gagal!*\n\n> Tag atau balas pesan member yang ingin dijadikan admin.`;
+
+                    let user = await sock.onWhatsApp(who);
+                    if (!user[0].exists)
+                        throw `*❌ Error!*\n\n> Nomor tersebut tidak terdaftar di WhatsApp.`;
+
+                    await sock
+                        .groupParticipantsUpdate(m.cht, [who], "promote")
+                        .then(() => {
+                            let name = who.split("@")[0];
+                            m.reply(
+                                `*✅ Promosi Berhasil!*\n\n> 🎉 Selamat kepada *@${name}* karena telah menjadi admin grup!\n\n📌 _Gunakan jabatan ini dengan bijak._`, {
+                                    mentions: [who]
+                                },
+                            );
+                        })
+                        .catch(() => {
+                            m.reply(
+                                `*❌ Gagal Memproses!*\n\n> Pastikan bot memiliki hak admin untuk melakukan perubahan ini.`,
+                            );
+                        });
+                }
+                break
+                case 'demote': {
+                    if (!isAdmin) return m.reply(config.messages.admin)
+                    let who = m.quoted ?
+                        m.quoted.sender :
+                        m.mentions.length > 0 ?
+                        m.mentions[0] :
+                        false;
+
+                    if (!who) {
+                        throw `*⚠️ Perintah Tidak Lengkap!*\n\n> *Gunakan salah satu cara berikut:*\n  • Tag member dengan: @username\n  • Balas pesan member yang ingin diturunkan.\n\n📌 _Pastikan kamu memiliki hak sebagai admin grup._`;
+                    }
+
+                    let user = await sock.onWhatsApp(who);
+                    if (!user[0].exists) {
+                        throw `*❌ Member Tidak Ditemukan!*\n\n> Akun WhatsApp ini tidak terdaftar atau sudah tidak aktif.`;
+                    }
+
+                    await sock
+                        .groupParticipantsUpdate(m.cht, [who], "demote")
+                        .then(() => {
+                            m.reply(
+                                `*✅ Berhasil!* 🎉\n\n> Jabatan @${who.split("@")[0]} telah diturunkan menjadi anggota biasa.\n\n📌 _Gunakan perintah ini dengan bijak untuk menjaga keharmonisan grup._`,
+                            );
+                        })
+                        .catch((err) => {
+                            m.reply(
+                                `*❌ Gagal!*\n\n> Tidak dapat menurunkan jabatan admin untuk @${who.split("@")[0]}.\n📌 _Pastikan bot memiliki hak admin untuk melakukan perubahan ini._`,
+                            );
+                        });
+                }
+                break
+                case 'security': {
+                    if (!isAdmin) return m.reply(config.messages.admin)
+                    let args = text.split(" ");
+                    let chat = db.list().group[m.cht];
+                    if (!text) return m.reply(`⚠️ *Format Salah!* ⚠️  
+Pastikan kamu menggunakan format yang benar untuk mengaktifkan fitur keamanan:  
+
+✅ *Aktifkan Security:*  
+Gunakan \`${ m.prefix + m.command } enable jam_tutup|jam_buka\`  
+🔹 *Contoh:* \`${ m.prefix + m.command } enable 21|5\`  
+
+❌ *Nonaktifkan Security:*  
+Gunakan \`!security disable\``)
+                    if (args[0] === 'enable') {
+                        if (args.length < 2) return m.reply(`Format salah! Gunakan ${ m.prefix + m.command } enable jam tutup|jam buka\nContoh: ${ m.prefix + m.command } enable 21|5`);
+                        let [closeTime, openTime] = args[1].split('|').map(Number);
+                        if (isNaN(closeTime) || isNaN(openTime)) return m.reply('Jam tutup dan buka harus berupa angka!');
+                        chat.autoGc = {
+                            closeTime,
+                            openTime
+                        };
+                        m.reply(`✅ *Auto Close/Open Diaktifkan!*\nGrup akan otomatis tutup pukul \`${closeTime}:00\` dan buka pukul \`${openTime}:00\` sesuai jadwal yang telah di buat oleh Admin Group.`);
+                    } else if (args[0] === 'disable') {
+                        delete chat.autoGc;
+                        m.reply('Auto group close/open dinonaktifkan.');
                     }
                 }
                 break
@@ -248,6 +426,70 @@ Harap masukkan perintah dengan format berikut:
                             sticker
                         });
                     }
+                }
+                break
+                case 'qc': {
+                    const q = m.quoted ? m.quoted : m;
+                    let input = m.isQuoted ? m.quoted.body : text;
+                    if (!input) return m.reply("> Reply/Masukan pesan");
+                    let reply;
+                        if (!m.quoted) {
+                           reply = {};
+                        } else if (!q.sender === q.sender) {
+                          reply = {
+                             name: q.name,
+                              text: q.text || "",
+                              chatId: q.cht.split("@")[0],
+                          };
+                    }
+
+                    const img = await q.download?.();
+                    const pp = await sock
+                        .profilePictureUrl(q.sender, "image")
+                        .catch((_) => "https://telegra.ph/file/320b066dc81928b782c7b.png")
+                        .then(async (a) => await Func.fetchBuffer(a));
+                    const obj = {
+                        type: "quote",
+                        format: "png",
+                        backgroundColor: "#161616",
+                        width: 512,
+                        height: 768,
+                        scale: 2,
+                        messages: [{
+                            entities: [],
+                            avatar: true,
+                            from: {
+                                id: m.key.remoteJid.split("@")[0],
+                                name: q.pushName,
+                                photo: {
+                                    url: await Uploader.catbox(pp),
+                                },
+                            },
+                            text: text || "",
+                            replyMessage: reply,
+                        }, ],
+                    };
+
+                    const json = await axios.post(
+                        "https://bot.lyo.su/quote/generate",
+                        obj, {
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                        },
+                    );
+                    const buffer = Buffer.from(json.data.result.image, "base64");
+                    const sticker = await writeExif({
+                        mimetype: "image",
+                        data: buffer,
+                    }, {
+                        packName: config.sticker.packname,
+                        packPublish: config.sticker.author,
+                    }, );
+                    m.reply({
+                        sticker,
+                    });
+
                 }
                 break
                 case 's':
@@ -471,6 +713,32 @@ Harap masukkan perintah dengan format berikut:
                 }
                 break;
                 // information
+                case 'banchat': {
+                    if (!isSenna) return m.reply(config.messages.owner)
+                    let args = text.split(" ");
+                    let status = db.list().group[m.cht].event
+                    if (args[0] === "true") {
+                        if (status.banchat) return m.reply('Group ini sudah dalam status: Banned!');
+                        status.banchat = true
+                        await m.react('🔇');
+                    } else if (args[0] === "false") {
+                        if (!status.banchat) return m.reply('Group ini sudah dalam status: Unbanned');
+                        status.banchat = false
+                        await m.react('✅');
+                    } else {
+                        await m.reply(`Please Type The Option\n\nExample: ${m.prefix + m.command} true/false`);
+                    }
+                }
+                break
+                case 'ai': {
+                    if (!text) {
+                        return m.reply(`⚠️ *Harap Masukkan Format yang Tepat!*\n\n📋 *Contoh Penggunaan:* 
+${m.prefix + m.command} Halo apa itu Skizofrenia?`);
+                    }
+                    let data = await Func.fetchJson(`https://www.archive-ui.biz.id/ai/luminai?text=${text}`)
+                    m.reply(data.result)
+                }
+                break
                 case 'owner': {
                     let list_staff = [];
                     let staff_domp = config.owner;
@@ -580,48 +848,65 @@ ${Object.entries(node)
                         var numUpper = (mytext.match(/case '/g) || []).length;
                         return numUpper;
                     };
-                    let limit = db.list().user[m.sender].limit
-                    let cap = `*User Information* : 
-> data from ${m.pushName} account..
- ֺ ⤿ @${m.sender.split("@")[0]}
- ۫ ִ—🎖️ Status : ${m.isOwner ? "Developer" : isPrems ? "Premium" : "Free"}
- ۫ ִ—⚖️ Limit : ${m.isOwner ? "Unlimited" : limit}
- 
-*Bot Information* : 
-> status data from bot.
- ֺ ⤿ *${pkg.name}*
- ۫ ִ—🔢 Version : v${pkg.version}
- ۫ ִ—🕰️ Uptime : ${Func.toDate(process.uptime() * 1000)}
- ۫ ִ—🔑 Prefix : [ ${m.prefix} ]
- ۫ ִ—⚡ Total Commands : ${totalCmd()}
+                    const limit = db.list().user[m.sender].limit
 
-📚 *LIST COMMAND* : 
-*Group Tools*
-1. dor  
-2. hidetag  
-3. event  
-4. setwelcome  
-5. setleft  
+                    const Categories = [{
+                            name: "⭐ Group Tools",
+                            commands: ["dor", "demote", "event", "group", "hidetag", "promote", "security", "setwelcome", "setleft"]
+                        },
+                        {
+                            name: "📥 Downloader Tools",
+                            commands: ["tiktok", "instagram"]
+                        },
+                        {
+                            name: "🎨 Maker Tools",
+                            commands: ["brat", "sticker", "smeme", "qc"]
+                        },
+                        {
+                            name: "🍀 Special Tools",
+                            commands: ["ai", "script", "tourl"]
+                        },
+                        {
+                            name: "🎧 Music",
+                            commands: ["play"]
+                        },
+                        {
+                            name: "👨‍💻 Owner Tools",
+                            commands: ["banchat", "ping", "owner"]
+                        }
+                    ];
 
-*Downloader Tools*
-6. tiktok  
-7. instagram  
+                    let currentNumber = 1;
 
-*Maker Tools*
-8. brat  
-9. sticker  
-10. smeme
+                    const formattedCategories = Categories.map(category => {
+                        const commandsWithNumbers = category.commands.map(command => `> \`\`\`${currentNumber++}. ${command}\`\`\``);
+                        return `*${category.name} (${category.commands.length})*\n` + commandsWithNumbers.join("\n");
+                    }).join("\n\n");
 
-*Special Tools*
-11. script
-12. tourl  
-
-*Music*
-13. play  
-
-*Owner Tools*
-14. ping  
-15. owner`
+                    let cap = `ㅡㅈ ׁ _HOLLA USERS!_ `;
+                    cap += `\n─ִ──۫┈ ⏝꯭︶ ִ ♡ ׄ ┈─۪─`;
+                    cap += `\n👋 Hai! Saya Senna Network, asisten bot WhatsApp siap bantu dengan berbagai fitur keren! 🚀`;
+                    cap += `\n─────────────────────────`;
+                    cap += `\n  *User Information* : `;
+                    cap += `\n> data from ${m.pushName} account..`;
+                    cap += `\n ֺ ⤿ @${m.sender.split("@")[0]}`;
+                    cap += `\n ۫ ִ—🎖️ Status : ${m.isOwner ? "Developer" : isPrems ? "Premium" : "Free"}`;
+                    cap += `\n ۫ ִ—⚖️ Limit : ${m.isOwner ? "Unlimited" : limit}\n`;
+                    cap += `\n  *Bot Information* : `;
+                    cap += `\n> status data from bot.`;
+                    cap += `\n ֺ ⤿ *${pkg.name}*`;
+                    cap += `\n ۫ ִ—🔢 Version : v${pkg.version}`;
+                    cap += `\n ۫ ִ—🕰️ Uptime : ${Func.toDate(process.uptime() * 1000)}`;
+                    cap += `\n ۫ ִ—🔑 Prefix : [ ${m.prefix} ]`;
+                    cap += `\n ۫ ִ—⚡ Total Commands : ${totalCmd()}`;
+                    cap += `\n─────────────────────────`;
+                    cap += `\n${formattedCategories}`;
+                    cap += `\n─────────────────────────`;
+                    cap += `\n🌟 *Support the Project!*`;
+                    cap += `\n\`\`\`Your feedback and support mean the world to us!\`\`\``;
+                    cap += `\n\`\`\`If you enjoy using this bot, consider giving a ⭐ to the project on GitHub.\`\`\``;
+                    cap += `\n\`\`\`Visit: github.com/swndyy/Senna-WhatsApp\`\`\``;
+                    cap += `\n─────────────────────────`;                    
                     let keyword = await sock.sendMessage(m.cht, {
                         video: {
                             url: "https://files.catbox.moe/pxdic5.mp4"
@@ -629,12 +914,12 @@ ${Object.entries(node)
                         caption: cap,
                         gifPlayback: true,
                         contextInfo: {
-                                  mentionedJid: [m.sender]
+                            mentionedJid: [m.sender]
                         }
                     }, {
                         quoted: m
                     })
-                    
+
                     await sock.sendMessage(m.cht, {
                         audio: {
                             url: "https://files.catbox.moe/e90xls.mp4"
