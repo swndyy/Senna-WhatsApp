@@ -2,15 +2,9 @@ const config = require("./settings.js");
 const Func = require("./app/function.js");
 const Uploader = require("./app/uploader.js");
 const pkg = require(process.cwd() + "/package.json");
-const {
-    writeExif
-} = require(process.cwd() + "/app/sticker");
+const { writeExif } = require(process.cwd() + "/app/sticker");
 // Core Modules (Bawaan Node.js)
-const {
-    exec,
-    spawn,
-    execSync
-} = require("child_process")
+const { exec, spawn, execSync } = require("child_process")
 const crypto = require('crypto');
 const fs = require("node:fs");
 const os = require('node:os');
@@ -83,13 +77,13 @@ module.exports = async (m, sock, store) => {
             checkGroupsStatus(sock);
         });
 
-        if (db.list().group[m.cht]?.event?.banchat) {
+        if (db.list().group[m.cht]?.status?.banchat) {
             if (!m.isOwner) {
                 return;
             }
         }
 
-        if (db.list().group[m.cht]?.event?.mute) {
+        if (db.list().group[m.cht]?.status?.mute) {
             if (!isAdmin && !m.isOwner) {
                 return;
             }
@@ -108,12 +102,12 @@ module.exports = async (m, sock, store) => {
                         false;
 
                     if (!who) {
-                        throw `*⚠️ Perintah Tidak Lengkap!*\n\n> *Gunakan salah satu cara berikut:*\n  • Tag anggota dengan: @username\n  • Balas pesan anggota yang ingin dikeluarkan.\n\n📌 _Pastikan kamu memiliki hak sebagai admin grup._`;
+                        return m.reply(`*⚠️ Perintah Tidak Lengkap!*\n\n> *Gunakan salah satu cara berikut:*\n  • Tag anggota dengan: @username\n  • Balas pesan anggota yang ingin dikeluarkan.\n\n📌 _Pastikan kamu memiliki hak sebagai admin grup._`);
                     }
 
                     let user = await sock.onWhatsApp(who);
                     if (!user[0].exists) {
-                        throw `*❌ Anggota Tidak Ditemukan!*\n\n> Akun WhatsApp ini tidak terdaftar atau sudah tidak aktif.`;
+                        return m.reply(`*❌ Anggota Tidak Ditemukan!*\n\n> Akun WhatsApp ini tidak terdaftar atau sudah tidak aktif.`);
                     }
 
                     await sock
@@ -159,11 +153,12 @@ module.exports = async (m, sock, store) => {
                     });
                 }
                 break
-                case 'event': {
+                case 'event':
+                case 'gcsetting': {
                     if (!isAdmin) return m.reply(config.messages.admin)
                     const eventCategories = [
-                        "welcome",
-                        "left",
+                        "```welcome```",
+                        "```goodbye```",
                     ];
                     let args = text.split(" ");
                     let chat = db.list().group[m.cht].event;
@@ -174,24 +169,24 @@ Harap masukkan perintah dengan format berikut:
 📝 *Contoh:* 
 *${m.prefix + m.command} enable welcome* 
 
-> *– 乂 Kategori Tersedia:* 
+> *–Kategori Tersedia:* 
 ${eventCategories.join("\n> ")}`)
                     if (args[0] === 'enable') {
                         if (args.length < 2) return m.reply(`⚠️ *Format Salah!*\nGunakan: \`${m.prefix + m.command} enable [category]\`\n📝 *Contoh:* \`${m.prefix + m.command} enable welcome\``);
                         if (args[1] === 'welcome') {
                             chat.welcome = true
                             m.reply(`✅ *Welcome berhasil diaktifkan!*\nWelcome akan menggunakan ucapan default.\nUntuk mengubah ucapan, gunakan perintah: \`${m.prefix}setwelcome\``)
-                        } else if (args[1] === 'left') {
+                        } else if (args[1] === 'goodbye') {
                             chat.left = true
-                            m.reply(`✅ *Left berhasil diaktifkan!*\nLeft akan menggunakan ucapan default.\nUntuk mengubah ucapan, gunakan perintah: \`${m.prefix}setleft\``)
+                            m.reply(`✅ *Goodbye berhasil diaktifkan!*\nLeft akan menggunakan ucapan default.\nUntuk mengubah ucapan, gunakan perintah: \`${m.prefix}setgoodbye\``)
                         }
                     } else if (args[0] === 'disable') {
                         if (args[1] === 'welcome') {
                             chat.welcome = false
                             m.reply(`✅ *Welcome berhasil dinonaktifkan!*\nSekarang, Shizuku tidak akan lagi mengirim ucapan selamat datang kepada member baru. `)
-                        } else if (args[1] === 'left') {
+                        } else if (args[1] === 'goodbye') {
                             chat.left = false
-                            m.reply(`✅ *Left berhasil dinonaktifkan!*\nSekarang, Shizuku tidak akan lagi mengirim ucapan selamat tinggal kepada member yang keluar. `)
+                            m.reply(`✅ *Goodbye berhasil dinonaktifkan!*\nSekarang, Shizuku tidak akan lagi mengirim ucapan selamat tinggal kepada member yang keluar. `)
                         }
                     }
                 }
@@ -200,7 +195,7 @@ ${eventCategories.join("\n> ")}`)
                 case 'gc': {
                     if (!isAdmin) return m.reply(config.messages.admin)
                     if (!text)
-                        throw `*– 乂 Cara Penggunaan:*\n
+                        return m.reply(`*– 乂 Cara Penggunaan:*\n
 > *🔓* Gunakan \`open\` untuk membuka grup. Member dapat mengirim pesan dan berinteraksi dengan bebas.\n
 > *🔒* Gunakan \`close\` untuk menutup grup. Hanya admin yang dapat mengirim pesan, member akan dibatasi.\n\n
 *– 乂 Contoh Penggunaan:*\n
@@ -208,7 +203,7 @@ ${eventCategories.join("\n> ")}`)
 > *-* *${m.prefix + m.command} close* - Untuk menutup grup\n\n
 *– 乂 Penting!*\n
 > *📌* Jika grup dibuka, semua member dapat berinteraksi.\n
-> *📌* Jika grup ditutup, hanya admin yang dapat mengirim pesan.`;
+> *📌* Jika grup ditutup, hanya admin yang dapat mengirim pesan.`);
 
                     await sock
                         .groupSettingUpdate(
@@ -250,11 +245,11 @@ ${eventCategories.join("\n> ")}`)
                         false;
 
                     if (!who)
-                        throw `*🚫 Perintah Gagal!*\n\n> Tag atau balas pesan member yang ingin dijadikan admin.`;
+                        return m.reply(`*🚫 Perintah Gagal!*\n\n> Tag atau balas pesan member yang ingin dijadikan admin.`);
 
                     let user = await sock.onWhatsApp(who);
                     if (!user[0].exists)
-                        throw `*❌ Error!*\n\n> Nomor tersebut tidak terdaftar di WhatsApp.`;
+                        return m.reply(`*❌ Error!*\n\n> Nomor tersebut tidak terdaftar di WhatsApp.`);
 
                     await sock
                         .groupParticipantsUpdate(m.cht, [who], "promote")
@@ -282,12 +277,12 @@ ${eventCategories.join("\n> ")}`)
                         false;
 
                     if (!who) {
-                        throw `*⚠️ Perintah Tidak Lengkap!*\n\n> *Gunakan salah satu cara berikut:*\n  • Tag member dengan: @username\n  • Balas pesan member yang ingin diturunkan.\n\n📌 _Pastikan kamu memiliki hak sebagai admin grup._`;
+                        return m.reply(`*⚠️ Perintah Tidak Lengkap!*\n\n> *Gunakan salah satu cara berikut:*\n  • Tag member dengan: @username\n  • Balas pesan member yang ingin diturunkan.\n\n📌 _Pastikan kamu memiliki hak sebagai admin grup._`);
                     }
 
                     let user = await sock.onWhatsApp(who);
                     if (!user[0].exists) {
-                        throw `*❌ Member Tidak Ditemukan!*\n\n> Akun WhatsApp ini tidak terdaftar atau sudah tidak aktif.`;
+                        return m.reply(`*❌ Member Tidak Ditemukan!*\n\n> Akun WhatsApp ini tidak terdaftar atau sudah tidak aktif.`);
                     }
 
                     await sock
@@ -347,7 +342,7 @@ Gunakan \`!security disable\``)
                     m.reply(`✅ *Ucapan selamat datang telah diperbarui!*\nSekarang, sambutan untuk member baru telah diperbarui dengan format terbaru. 🎉 \n\nJika ingin melihat atau mengubahnya kembali, gunakan perintah: \`${m.prefix}setwelcome\`.`);
                 }
                 break
-                case 'setleft': {
+                case 'setgoodbay': {
                     if (!isAdmin) return m.reply(config.messages.admin)
                     if (!text) {
                         return m.reply(`⚠️ *Harap Masukkan Format yang Tepat!*\n\n📋 *Contoh Penggunaan:* 
@@ -359,7 +354,7 @@ Gunakan \`!security disable\``)
 
                     let chat = db.list().group[m.cht].event;
                     chat.sWlcm = text;
-                    m.reply(`✅ *Ucapan selamat tinggal telah diperbarui!*\nKini pesan perpisahan untuk member yang keluar telah diperbarui dengan format terbaru.\n\nJika ingin mengubahnya kembali, gunakan perintah: \`${m.prefix}setleft\`. `);
+                    m.reply(`✅ *Ucapan selamat tinggal telah diperbarui!*\nKini pesan perpisahan untuk member yang keluar telah diperbarui dengan format terbaru.\n\nJika ingin mengubahnya kembali, gunakan perintah: \`${m.prefix}setgoodbye\`. `);
                 }
                 break
                 // Maker
@@ -377,7 +372,7 @@ Gunakan \`!security disable\``)
                         })
                         for (let i = 0; i < txt.length; i++) {
                             let word = txt.slice(0, i + 1).join(" ");
-                            let media = (await axios.get(`https://aqul-brat.hf.space/api/brat?text=${encodeURIComponent(word)}`, {
+                            let media = (await axios.get(`${config.api.archive}/api/maker/brat?text=${encodeURIComponent(word)}`, {
                                 responseType: 'arraybuffer'
                             })).data;
                             let tmpDir = path.resolve(`${tmpDirBase}/brat_${i}.mp4`);
@@ -412,7 +407,7 @@ Gunakan \`!security disable\``)
                             sticker
                         });
                     } else {
-                        let media = (await axios.get(`https://aqul-brat.hf.space/api/brat?text=${encodeURIComponent(input)}`, {
+                        let media = (await axios.get(`${config.api.archive}/api/maker/brat?text=${encodeURIComponent(input)}`, {
                             responseType: 'arraybuffer'
                         })).data;
                         let sticker = await writeExif({
@@ -499,7 +494,7 @@ Gunakan \`!security disable\``)
                     if (/image|video|webp/.test(quoted.msg.mimetype)) {
                         let media = await quoted.download();
                         if (quoted.msg?.seconds > 10)
-                            throw "> *⚠️ Video lebih dari 10 detik tidak dapat dijadikan sticker*.";
+                            return m.reply("> *⚠️ Video lebih dari 10 detik tidak dapat dijadikan sticker*.");
 
                         let exif;
                         if (text) {
@@ -608,39 +603,70 @@ Gunakan \`!security disable\``)
                     let input = m.isQuoted ? m.quoted.body : text;
                     const regex = /(https:\/\/(vt\.tiktok\.com\/[a-zA-Z0-9._-]+\/|vm\.tiktok\.com\/[a-zA-Z0-9._-]+\/|www\.tiktok\.com\/@[\w._-]+\/video\/\d+|www\.instagram\.com\/reel\/[a-zA-Z0-9._-]+\/))/g;
                     const matches = input.match(regex);
-
-
+                
                     if (!matches || matches.length === 0) {
                         return m.reply("🚩 URL tidak valid atau tidak didukung. Masukkan URL TikTok atau Instagram Reels.");
                     }
-
+                
                     const url = matches[0];
-
+                
                     if (url.startsWith("https://vt.tiktok.com/") ||
                         url.startsWith("https://www.tiktok.com/") ||
                         url.startsWith("https://t.tiktok.com/") ||
                         url.startsWith("https://vm.tiktok.com/")) {
                         try {
-                            const dataTiktok = await Func.fetchJson(`https://www.archive-ui.biz.id/download/tiktok?url=${url}`);
-                            if (dataTiktok && dataTiktok.result && dataTiktok.result.no_wm) {
-                                await m.reply({
-                                    video: {
-                                        url: dataTiktok.result.no_wm
-                                    },
-                                    caption: dataTiktok.result.title
-                                });
-                            } else {
-                                m.reply("🚩 Gagal mendapatkan data video TikTok. Pastikan URL valid.");
+                            const response = await Func.fetchJson(`${config.api.archive}/api/download/tiktok?url=${url}`);
+                            
+                            if (!response.status || !response.result) {
+                                return m.reply("🚩 Gagal mendapatkan data video TikTok. Pastikan URL valid.");
                             }
+                
+                            const a = response.result;
+                
+                            // Jika ada foto (image_slide), kirim semua gambar
+                            if (a.image_slide && a.image_slide.length > 0) {
+                                for (const imageUrl of a.image_slide) {
+                                    await sock.sendMessage(
+                                        m.cht,
+                                        { image: { url: imageUrl } },
+                                        { quoted: m },
+                                    );
+                                }
+                                return;
+                            }
+                
+                            // Jika ada video, kirim video tanpa watermark
+                            if (a.play) {
+                                await sock.sendMessage(
+                                    m.cht,
+                                    { video: { url: a.play }, caption: `🎬 Video TikTok dari ${response.author}` },
+                                    { quoted: m },
+                                );
+                                return;
+                            }
+                
+                            // Jika ada video dengan watermark, kirim sebagai opsi tambahan
+                            if (a.play_watermark) {
+                                await sock.sendMessage(
+                                    m.cht,
+                                    { video: { url: a.play_watermark }, caption: `🎬 Video TikTok (Watermarked) dari ${response.author}` },
+                                    { quoted: m },
+                                );
+                                return;
+                            }
+                
+                            m.reply("🚩 Tidak ditemukan konten yang dapat dikirim.");
+                            
                         } catch (error) {
                             console.error("🚩 Error TikTok Downloader:", error.message);
                             m.reply("🚩 Terjadi kesalahan saat mencoba mengunduh video TikTok.");
                         }
                     }
-
+                
                     if (url.startsWith("https://www.instagram.com/") || url.startsWith("https://www.instagram.com/reel/")) {
                         try {
-                            const dataInstagram = await Func.fetchJson(`https://www.archive-ui.biz.id/download/instagram?url=${url}`);
+                            const dataInstagram = await Func.fetchJson(`${config.api.archive}/api/download/instagram?url=${url}`);
+                            
                             if (dataInstagram && dataInstagram.result && dataInstagram.result.url.length > 0) {
                                 for (const videoUrl of dataInstagram.result.url) {
                                     await sock.sendFile(m.cht, videoUrl, null, "", m);
@@ -658,65 +684,112 @@ Gunakan \`!security disable\``)
                 case 'music':
                 case 'play': {
                     if (!text) {
-                        return m.reply(`Masukan Judulnya\n\nExample: ${m.prefix + m.command} Ku Tak Bisa - Adista Band`);
+                        return m.reply(`Masukkan judul lagu\n\nContoh: ${m.prefix + m.command} Ku Tak Bisa - Adista Band`);
                     }
                     try {
-                        async function downloadSoundCloudTrack(trackUrl) {
-                            try {
-                                const config = {
-                                    method: "post",
-                                    url: "https://api.downloadsound.cloud/track",
-                                    headers: {
-                                        Accept: "application/json, text/plain, */*",
-                                        "Content-Type": "application/json;charset=utf-8",
-                                    },
-                                    data: {
-                                        url: trackUrl,
-                                    },
-                                };
-
-                                const response = await axios(config);
-                                return response.data;
-                            } catch (error) {
-                                console.error("Error saat mengunduh track:", error.message);
-                                throw error; // Lempar error agar dapat ditangani oleh caller
-                            }
-                        }
-
-                        const searchMusicResults = await Func.fetchJson(`https://www.archive-ui.biz.id/search/soundcloud?q=${text}`);
+                        // Pencarian musik
+                        const searchMusicResults = await Func.fetchJson(`${config.api.archive}/api/search/soundcloud?q=${encodeURIComponent(text)}`);
                         m.reply('Loading...');
+                
+                        if (!searchMusicResults.status || !searchMusicResults.result.length) {
+                            return m.reply("🚩 Lagu tidak ditemukan. Coba gunakan kata kunci lain.");
+                        }
+                
                         const MusicallyRs = searchMusicResults.result[0].url;
-                        const scdl = await downloadSoundCloudTrack(MusicallyRs)
-                        m.reply({
-                            audio: {
-                                url: scdl.url
+                        const scdl = await Func.fetchJson(`${config.api.archive}/api/download/soundcloud?url=${encodeURIComponent(MusicallyRs)}`);
+                
+                        if (!scdl.status || !scdl.result) {
+                            return m.reply("🚩 Gagal mendapatkan data audio SoundCloud.");
+                        }
+                
+                        const data = scdl.result;
+                
+                        // Kirim thumbnail dengan metadata
+                        const caption = `🎵 *SoundCloud Music Download*\n\n`
+                            + `📌 *Title:* ${data.title}\n`
+                            + `👤 *Artist:* ${data.author.username}\n`
+                            + `🌍 *Location:* ${data.author.city} (${data.author.country_code})\n`
+                            + `🔗 *Profile:* ${data.author.permalink_url}\n\n`
+                            + `🎶 *Audio is being sent...*`;
+                
+                        await sock.sendMessage(
+                            m.cht,
+                            { image: { url: data.imageURL }, caption },
+                            { quoted: m },
+                        );
+                
+                        // Kirim audio setelah thumbnail
+                        await sock.sendMessage(
+                            m.cht,
+                            { 
+                                audio: { url: data.url },
+                                mimetype: 'audio/mpeg',
+                                ptt: false
                             },
-                            mimetype: 'audio/mpeg',
-                            ptt: false,
-                            contextInfo: {
-                                externalAdReply: {
-                                    mediaUrl: scdl.imageURL,
-                                    mediaType: 2,
-                                    title: scdl.title,
-                                    body: "Sound Cloud",
-                                    thumbnailUrl: scdl.imageURL,
-                                    sourceUrl: MusicallyRs,
-                                    renderLargerThumbnail: true,
-                                },
-                            }
-                        })
-
+                            { quoted: m },
+                        );
                     } catch (error) {
-                        console.error('Error:', error);
-                        return m.reply('Terjadi kesalahan saat memproses permintaan.');
+                        console.error('🚩 Error SoundCloud Downloader:', error.message);
+                        return m.reply('🚩 Terjadi kesalahan saat memproses permintaan.');
                     }
                 }
                 break;
-                // information
+                case 'yta':
+                case 'ytmp3':
+                case 'ytaudio': {
+                    let input = m.isQuoted ? m.quoted.body : text;
+                    const regex = /(https:\/\/www\.youtube\.com\/watch\?v=[\w_-]+|https:\/\/youtu\.be\/[\w_-]+)/g;
+                    const matches = input.match(regex);
+                
+                    if (!matches || matches.length === 0) {
+                        return m.reply("🚩 URL tidak valid atau tidak didukung. Masukkan URL YouTube yang benar.");
+                    }
+                
+                    const url = matches[0];
+                
+                    try {
+                        const response = await Func.fetchJson(`${config.api.archive}/api/download/ytmp3?url=${encodeURIComponent(url)}`);
+                
+                        if (!response.status || !response.result) {
+                            return m.reply("🚩 Gagal mendapatkan data audio YouTube. Pastikan URL valid.");
+                        }
+                
+                        const data = response.result;
+                
+                        const caption = `🎵 *YouTube MP3 Download*\n\n`
+                            + `📌 *Title:* ${data.title}\n`
+                            + `⏳ *Duration:* ${data.duration}\n`
+                            + `📅 *Uploaded:* ${data.uploadDate}\n\n`
+                            + `🔗 *Audio is being sent...*`;
+                
+                        // Kirim gambar thumbnail dengan caption
+                       let senabjir = await sock.sendMessage(
+                            m.cht,
+                            { image: { url: data.thumbnail }, caption },
+                            { quoted: m },
+                        );
+                
+                        // Kirim audio setelah thumbnail
+                        await sock.sendMessage(
+                            m.cht,
+                            { 
+                                audio: { url: data.audio_url },
+                                mimetype: 'audio/mpeg',
+                                ptt: false
+                            },
+                            { quoted: senabjir },
+                        );
+                    } catch (error) {
+                        console.error("🚩 Error YouTube MP3 Downloader:", error.message);
+                        m.reply("🚩 Terjadi kesalahan saat mencoba mengunduh audio dari YouTube.");
+                    }
+                }
+                break;
+                // Owner Tools
                 case 'banchat': {
                     if (!isSenna) return m.reply(config.messages.owner)
                     let args = text.split(" ");
-                    let status = db.list().group[m.cht].event
+                    let status = db.list().group[m.cht].status
                     if (args[0] === "true") {
                         if (status.banchat) return m.reply('Group ini sudah dalam status: Banned!');
                         status.banchat = true
@@ -730,22 +803,24 @@ Gunakan \`!security disable\``)
                     }
                 }
                 break
+                // Artificial intelligence                 
                 case 'ai': {
                     if (!text) {
                         return m.reply(`⚠️ *Harap Masukkan Format yang Tepat!*\n\n📋 *Contoh Penggunaan:* 
 ${m.prefix + m.command} Halo apa itu Skizofrenia?`);
                     }
-                    let data = await Func.fetchJson(`https://www.archive-ui.biz.id/ai/luminai?text=${text}`)
+                    let data = await Func.fetchJson(`${config.api.archive}/api/ai/deepseek-r1?text=${text}`)
                     m.reply(data.result)
                 }
-                break
+                break 
+                // information                
                 case 'owner': {
                     let list_staff = [];
                     let staff_domp = config.owner;
                     for (let i of staff_domp) {
                         list_staff.push({
                             displayName: "anonymous",
-                            vcard: `BEGIN:VCARD\nVERSION:3.0\nN:anonymous\nFN:anonymous\nitem1.TEL;waid=${i}:${i}\nitem1.X-ABLabel:📞 Contact Owners\nitem2.EMAIL;type=INTERNET:📧 sennanetwork@gmail.com\nitem2.X-ABLabel:📩 Email\nitem3.URL:https://www.archive-ui.biz.id\nitem3.X-ABLabel:🌍 GitHub & Website\nitem4.ADR:;;🇮🇩 Indonesia;;;;\nitem4.X-ABLabel:📍 Region\nEND:VCARD`
+                            vcard: `BEGIN:VCARD\nVERSION:3.0\nN:anonymous\nFN:anonymous\nitem1.TEL;waid=${i}:${i}\nitem1.X-ABLabel:📞 Contact Owners\nitem2.EMAIL;type=INTERNET:📧 sennanetwork@gmail.com\nitem2.X-ABLabel:📩 Email\nitem3.URL:${config.api.archive}\nitem3.X-ABLabel:🌍 GitHub & Website\nitem4.ADR:;;🇮🇩 Indonesia;;;;\nitem4.X-ABLabel:📍 Region\nEND:VCARD`
                         });
                     }
 
@@ -828,7 +903,7 @@ ${Object.entries(node)
                 case 'tourl': {
                     let target = m.quoted ? m.quoted : m;
                     if (!target.msg.mimetype)
-                        throw "⚠️ *Oops!* Harap kirim atau balas media (gambar/video) yang ingin diubah menjadi tautan.";
+                        return m.reply("⚠️ *Oops!* Harap kirim atau balas media (gambar/video) yang ingin diubah menjadi tautan.");
 
                     let buffer = await target.download();
                     let url = await Uploader.catbox(buffer);
@@ -839,32 +914,30 @@ ${Object.entries(node)
                     caption += `💡 *Tips:* Gunakan fitur ini untuk berbagi media dengan lebih mudah tanpa perlu mengunggah ulang.`;
 
                     m.reply(caption);
-                };
-
+                }
                 break
+                case 'help':
                 case 'menu': {
                     const totalCmd = () => {
-                        var mytext = fs.readFileSync("./cmd.js").toString();
-                        var numUpper = (mytext.match(/case '/g) || []).length;
-                        return numUpper;
+                          var mytext = fs.readFileSync("./cmd.js").toString();
+                          var blocks = mytext.split(/break/g);
+                          var numUpper = blocks.filter(block => block.includes("case '")).length;
+                          return numUpper;
                     };
+                    
                     const limit = db.list().user[m.sender].limit
 
                     const Categories = [{
-                            name: "⭐ Group Tools",
-                            commands: ["dor", "demote", "event", "group", "hidetag", "promote", "security", "setwelcome", "setleft"]
-                        },
-                        {
                             name: "📥 Downloader Tools",
-                            commands: ["tiktok", "instagram"]
+                            commands: ["tiktok", "instagram", "ytaudio"]
+                        },
+                        {                    
+                            name: "⭐ Group Tools",
+                            commands: ["dor", "demote", "event", "group", "gcsetting", "hidetag", "promote", "security", "setwelcome", "setgoodbye"]
                         },
                         {
                             name: "🎨 Maker Tools",
                             commands: ["brat", "sticker", "smeme", "qc"]
-                        },
-                        {
-                            name: "🍀 Special Tools",
-                            commands: ["ai", "script", "tourl"]
                         },
                         {
                             name: "🎧 Music",
@@ -873,6 +946,10 @@ ${Object.entries(node)
                         {
                             name: "👨‍💻 Owner Tools",
                             commands: ["banchat", "ping", "owner"]
+                        },
+                        {
+                            name: "🍀 Special Tools",
+                            commands: ["ai", "script", "tourl"]
                         }
                     ];
 
@@ -909,7 +986,7 @@ ${Object.entries(node)
                     cap += `\n─────────────────────────`;                    
                     let keyword = await sock.sendMessage(m.cht, {
                         video: {
-                            url: "https://files.catbox.moe/pxdic5.mp4"
+                            url: "https://files.catbox.moe/b2g5re.mp4"
                         },
                         caption: cap,
                         gifPlayback: true,

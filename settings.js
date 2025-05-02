@@ -18,6 +18,10 @@ const config = {
         tmail: "xxxxx",
         github: ""
     },
+    api: {
+        archive: "https://archive.lick.eu.org",
+        panel: ""
+    },
     messages: {
         wait: "> ⏳ *Please hold on*... Your request is being processed. Thank you for your patience!",
         owner: "> 🧑‍💻 *This feature is exclusive to the bot owner*... Unfortunately, you do not have access to this functionality.",
