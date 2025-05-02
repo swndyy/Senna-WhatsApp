@@ -68,6 +68,11 @@ class Database {
     await this.read();
     if (m.isGroup) {
       await this.add("group", m.cht, {
+        announcement: {
+          senna: 0,
+          arip: 0,
+          abay: 0,
+        },
         message: 0,
         sewa: {
           status: false,
@@ -75,14 +80,15 @@ class Database {
         },
         event: {
           antilinkgc: false,
-          banchat: false,
-          mute: false,
           welcome: false,
           left: false,
           sWlcm: "Halo @user 👋\nSelamat datang di @group 🎉\nSemoga kamu betah dan menikmati suasana di sini ya! 😊✨",
           sLeft: "Selamat tinggal, @user 👋\nTerima kasih sudah menjadi bagian dari @group. Semoga sukses di mana pun kamu berada! 🍀✨",
         },
-        status: "not_announcement",
+        status: {
+          banchat: true,
+          mute: false,
+        },
       });
     }
     await this.add("user", m.sender, {
@@ -93,10 +99,10 @@ class Database {
       rpg: {
           money: 0,
           exp: 0,
+          level: 1,
+          bank: 0,
+          coin: 0,  
       },
-      level: 1,
-      bank: 0,
-      coin: 0,
       premium: {
         status: false,
         expired: 0,

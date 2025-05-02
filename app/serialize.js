@@ -1,4 +1,4 @@
-//- Serialize by Hisoka Dika Ardnt 🌵
+//- Serialize by Hisoka Dika Ardnt
 
 const {
   jidNormalizedUser,
@@ -44,7 +44,7 @@ module.exports = async (messages, sock, store) => {
     m.id = m.key.id;
     m.isBot =
       m?.id.startsWith("BAE5") ||
-      m?.id.startsWith("SENA") ||
+      m?.id.startsWith("NEK0") ||
       m?.id.indexOf("-") > 1 ||
       m?.id.startsWith("3EB0") || false
     m.isGroup = m.cht.endsWith("@g.us");
@@ -272,8 +272,8 @@ module.exports = async (messages, sock, store) => {
           contextInfo: {
              mentionedJid: [...sock.parseMention(text)],
              externalAdReply: {
-                 title: "🌵 Senna Network | Playground",
-                 body: "Penyitas Code",
+                 title: "Senna Chwannn",
+                 body: "Waku! Waku! Boom!!",
                  mediaType: 1,
                  thumbnail: fs.readFileSync('./canvas/images/images.jpg'),
                  sourceUrl: null
