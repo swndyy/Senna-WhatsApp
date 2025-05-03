@@ -225,7 +225,7 @@
                 let {
                     sLeft,
                     sWlcm
-                } = db.list().group[groupUpdate.id].event;
+                } = db.list().group[groupUpdate.id]?.event;
                 for (let participant of participants) {
                     try {
                         userProfilePicture = await sock.profilePictureUrl(

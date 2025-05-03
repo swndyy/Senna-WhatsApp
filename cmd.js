@@ -170,7 +170,7 @@ Harap masukkan perintah dengan format berikut:
 *${m.prefix + m.command} enable welcome* 
 
 > *–Kategori Tersedia:* 
-${eventCategories.join("\n> ")}`)
+- ${eventCategories.join("\n- ")}`)
                     if (args[0] === 'enable') {
                         if (args.length < 2) return m.reply(`⚠️ *Format Salah!*\nGunakan: \`${m.prefix + m.command} enable [category]\`\n📝 *Contoh:* \`${m.prefix + m.command} enable welcome\``);
                         if (args[1] === 'welcome') {
@@ -785,6 +785,58 @@ Gunakan \`!security disable\``)
                     }
                 }
                 break;
+                // Search Tools
+                case 'spotify':
+                case 'spot':
+                case 'sp': {
+                    if (!text) {
+                        return m.reply(`Masukkan judul lagu atau link Spotify\n\nContoh:\n- ${m.prefix + m.command} Imagination\n- ${m.prefix + m.command} https://open.spotify.com/track/...`);
+                    }
+                
+                    const isSpotifyUrl = text.includes('open.spotify.com/track');
+                
+                    if (isSpotifyUrl) {
+                        try {
+                            const sport = await sock.sendMessage( m.cht, { text: '⬇️ *Mendownload lagu dari Spotify...*' }, { quoted: m });
+                            const url = encodeURIComponent(text);
+                            const res = await Func.fetchJson(`https://archive.lick.eu.org/api/download/spotify?url=${url}`);
+                
+                            if (!res.status) return m.reply("🚩 Gagal mengunduh lagu dari Spotify.");
+                
+                            const track = res.result.data;
+                            const caption = `🎶 *Spotify Music Download*\n\n> Title: ${track.title}\n> Artist: ${track.artis}\n> Duration: ${Func.toTime(track.durasi)}\n`;
+                            
+                              sock.sendMessage(m.cht, { document : { url : track.download }, fileName : track.title + '.mp3', caption: caption, mimetype: 'audio/mpeg' }, { quoted : sport });
+                              
+                        } catch (e) {
+                            console.error("🚩 Error Spotify Download:", e.message);
+                            m.reply("🚩 Terjadi kesalahan saat mengunduh lagu.");
+                        }
+                    } else {
+                        try {
+                            m.reply('🔍 *Mencari lagu di Spotify...*');
+                            const res = await Func.fetchJson(`${config.api.archive}/api/search/spotify?query=${encodeURIComponent(text)}`);
+                
+                            if (!res.status || !res.result.length) {
+                                return m.reply("🚩 Lagu tidak ditemukan. Coba gunakan kata kunci lain.");
+                            }
+                
+                            const result = res.result.slice(0, 5);
+                            let message = `🎶 *Spotify Music Search*\n\n`;
+                            result.forEach((track, index) => {
+                                message += `${index + 1}. ${track.trackName}\n`;
+                                message += `- Artist: ${track.artistName}\n`;
+                                message += `- Url: ${track.externalUrl}\n\n`;
+                            });
+                
+                            m.reply(message);
+                        } catch (error) {
+                            console.error("🚩 Error Spotify Search:", error.message);
+                            m.reply("🚩 Terjadi kesalahan saat mencari lagu di Spotify.");
+                        }
+                    }
+                }
+                break;
                 // Owner Tools
                 case 'banchat': {
                     if (!isSenna) return m.reply(config.messages.owner)
@@ -813,7 +865,74 @@ ${m.prefix + m.command} Halo apa itu Skizofrenia?`);
                     m.reply(data.result)
                 }
                 break 
-                // information                
+                // information
+                case 'get':
+                case 'fetch': {
+                  const undici = require("undici");
+                  const { html } = require("js-beautify");
+                  const { extension } = require("mime-types");
+                
+                  if (!text) {
+                    throw "Masukan atau reply URL yang ingin kamu ambil datanya";
+                  }
+                
+                  const urls = isUrlss(text);
+                  if (!urls) {
+                    throw "Format URL tidak valid, pastikan URL yang dimasukkan benar";
+                  }
+                
+                  for (const url of urls) {
+                    try {
+                      const response = await undici.fetch(url);
+                      if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                      }
+                
+                      const mime = response.headers.get("content-type").split(";")[0];
+                      const cap = `*─ 𐙚 F E T C H*\n> *Request :* ${url}`;
+                      let body;
+                
+                      if (/\html/gi.test(mime)) {
+                        body = await response.text();
+                        await sock.sendMessage(
+                          m.cht,
+                          {
+                            document: Buffer.from(html(body)),
+                            caption: cap,
+                            fileName: "result.html",
+                            mimetype: mime,
+                          },
+                          { quoted: m }
+                        );
+                      } else if (/\json/gi.test(mime)) {
+                        body = await response.json();
+                        m.reply(JSON.stringify(body, null, 2));
+                      } else if (/image/gi.test(mime) || /video/gi.test(mime) || /audio/gi.test(mime)) {
+                        body = await response.arrayBuffer();
+                        sock.sendFile(
+                          m.cht,
+                          Buffer.from(body),
+                          `result.${extension(mime)}`,
+                          cap,
+                          m,
+                          { mimetype: mime }
+                        );
+                      } else {
+                        body = await response.text();
+                        m.reply(jsonformat(body));
+                      }
+                    } catch (error) {
+                      console.error("Error fetching URL:", error);
+                      m.reply(`> ❌ Terjadi kesalahan saat mengambil URL: ${error.message}`);
+                    }
+                  }
+                
+                  function isUrlss(string) {
+                    const urlRegex = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/g;
+                    return string.match(urlRegex);
+                  }
+                }
+                break;
                 case 'owner': {
                     let list_staff = [];
                     let staff_domp = config.owner;
@@ -835,43 +954,105 @@ ${m.prefix + m.command} Halo apa itu Skizofrenia?`);
                 }
                 break
                 case 'ping': {
-                    if (!isSenna) return m.reply(config.messages.owner)
-                    let start = performance.now(),
-                        node = process.memoryUsage(),
-                        info = await fetch("https://ipwho.is").then((a) => a.json()),
-                        cap = `📊 *Bot Information*
-- Running on: ${process.env.username === "root" ? "VPS" : process.env.username === "container" ? "HOSTING (PANEL)" : process.env.username}
-- Uptime: ${Func.toDate(process.uptime() * 1000)}
-- Home Directory: ${os.homedir}
-- Directory Tmp: ${os.tmpdir()} (${fs.readdirSync(process.cwd() + os.tmpdir).length} berkas)
-- Hostname: ${os.hostname()}
+                    if (!isSenna) return m.reply(config.messages.owner);
+                
+                    const start = performance.now();
+                    const node = process.memoryUsage();
+                    const info = await fetch("https://ipwho.is").then(res => res.json());
+                    const cpus = os.cpus();
+                    const totalMem = os.totalmem();
+                    const freeMem = os.freemem();
+                    const usedMem = totalMem - freeMem;
+                    const load = os.loadavg();
+                
+                    const memPercent = (usedMem / totalMem) * 100;
+                
+                    // Fungsi visual bar
+                    const memBar = (percent) => {
+                        const bars = 10;
+                        const filled = Math.round((percent / 100) * bars);
+                        return '▰'.repeat(filled) + '▱'.repeat(bars - filled) + ` ${percent.toFixed(1)}%`;
+                    };
+                
+                    const cpuBar = (percent) => {
+                        const bars = 20;
+                        const filled = Math.round((percent / 100) * bars);
+                        return '▰'.repeat(filled) + '▱'.repeat(bars - filled) + ` ${percent.toFixed(1)}%`;
+                    };
+                
+                    // CPU per core
+                    const perCore = cpus.map((core, i) => {
+                        const times = core.times;
+                        const total = Object.values(times).reduce((a, b) => a + b, 0);
+                        const usage = ((total - times.idle) / total) * 100;
+                        return `- Core ${i + 1}: ${cpuBar(usage)}`;
+                    }).join('\n');
+                
+                    // Disk usage
+                    const { execSync } = require('child_process');
+                    let diskInfo = '';
+                    try {
+                        diskInfo = execSync('df -h --output=source,size,used,avail,pcent,target -x tmpfs -x devtmpfs').toString().trim();
+                    } catch (e) {
+                        diskInfo = 'Gagal mengambil informasi disk.';
+                    }
+                
+                    // PM2 service uptime
+                    let serviceUptime = '';
+                    try {
+                        const pm2 = execSync('pm2 jlist').toString();
+                        const pm2list = JSON.parse(pm2);
+                        serviceUptime = pm2list.map(p => `- ${p.name}: ${Func.toDate(p.pm2_env.pm_uptime ? Date.now() - p.pm2_env.pm_uptime : 0)}`).join('\n');
+                    } catch {
+                        serviceUptime = 'PM2 tidak tersedia atau tidak ada service berjalan.';
+                    }
+                
+                    // Fungsi capitalize
+                    String.prototype.capitalize = function () {
+                        return this.charAt(0).toUpperCase() + this.slice(1);
+                    };
+                
+                    const cap = `📊 *Bot & System Information*
+- Uptime Bot: ${Func.toDate(process.uptime() * 1000)}
+- Uptime OS: ${Func.toDate(os.uptime() * 1000)}
+- Ping Speed: ${(performance.now() - start).toFixed(2)} ms
 - Node Version: ${process.version}
-- CWD Location: ${process.cwd()}
+- Platform: ${os.platform()} ${os.arch()}
+- Hostname: ${os.hostname()}
+- CWD: ${process.cwd()}
+- Process ID: ${process.pid}
 
-🌐 *Provider Information*
+🌐 *Network*
+- IP: ${info.ip}
 - ISP: ${info.connection.isp}
-- Organization: ${info.connection.org}
-- Country: ${info.country}
-- City: ${info.city}
-- Time Zone: ${info.timezone.id}
+- Location: ${info.city}, ${info.region}, ${info.country}
+- Timezone: ${info.timezone.id}
 
-🖥️ *Server Information*
-- Speed: ${(performance.now() - start).toFixed(3)} ms
-- Uptime: ${Func.toDate(os.uptime() * 1000)}
-- Memori Total: ${Func.formatSize(os.totalmem() - os.freemem())} / ${Func.formatSize(os.totalmem())}
-- CPU: ${os.cpus()[0].model} (${os.cpus().length} core)
-- Release OS: ${os.release()}
-- Type OS: ${os.type()}
+🖥️ *Memory*
+- RAM: ${Func.formatSize(usedMem)} / ${Func.formatSize(totalMem)}
+  ${memBar(memPercent)}
 
-💾 *Node.js Memory Usage*
-${Object.entries(node)
- .map(([a, b]) => `- ${a.capitalize()}: ${Func.formatSize(b)}`)
- .join("\n")}
+🧠 *CPU*
+- Model: ${cpus[0].model}
+- Core(s): ${cpus.length}
+- Load Avg: ${load.map(v => v.toFixed(2)).join(' / ')}
+${perCore}
+
+💽 *Disk*
+\`\`\`
+${diskInfo}
+\`\`\`
+
+🧩 *PM2 Service Uptime*
+${serviceUptime}
+
+💾 *Node Memory Usage*
+${Object.entries(node).map(([k, v]) => `- ${k.capitalize()}: ${Func.formatSize(v)}`).join('\n')}
 `;
 
                     m.reply(cap);
                 }
-                break
+                break;
                 case 'script':
                 case 'sc': {
                     let data = await axios
@@ -929,7 +1110,7 @@ ${Object.entries(node)
 
                     const Categories = [{
                             name: "📥 Downloader Tools",
-                            commands: ["tiktok", "instagram", "ytaudio"]
+                            commands: ["tiktok", "instagram", "spotify", "ytaudio"]
                         },
                         {                    
                             name: "⭐ Group Tools",
@@ -946,6 +1127,10 @@ ${Object.entries(node)
                         {
                             name: "👨‍💻 Owner Tools",
                             commands: ["banchat", "ping", "owner"]
+                        },
+                        {                    
+                            name: "🔎 Search Tools",
+                            commands: ["soundcloud", "spotify"]
                         },
                         {
                             name: "🍀 Special Tools",
