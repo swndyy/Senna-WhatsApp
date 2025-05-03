@@ -624,8 +624,8 @@ Gunakan \`!security disable\``)
                             const a = response.result;
                 
                             // Jika ada foto (image_slide), kirim semua gambar
-                            if (a.image_slide && a.image_slide.length > 0) {
-                                for (const imageUrl of a.image_slide) {
+                            if (a.media.image_slide && a.media.image_slide.length > 0) {
+                                for (const imageUrl of a.media.image_slide) {
                                     await sock.sendMessage(
                                         m.cht,
                                         { image: { url: imageUrl } },
@@ -636,20 +636,20 @@ Gunakan \`!security disable\``)
                             }
                 
                             // Jika ada video, kirim video tanpa watermark
-                            if (a.play) {
+                            if (a.media.play) {
                                 await sock.sendMessage(
                                     m.cht,
-                                    { video: { url: a.play }, caption: `🎬 Video TikTok dari ${response.author}` },
+                                    { video: { url: a.media.play }, caption: a.metadata?.title },
                                     { quoted: m },
                                 );
                                 return;
                             }
                 
                             // Jika ada video dengan watermark, kirim sebagai opsi tambahan
-                            if (a.play_watermark) {
+                            if (a.media.play_watermark) {
                                 await sock.sendMessage(
                                     m.cht,
-                                    { video: { url: a.play_watermark }, caption: `🎬 Video TikTok (Watermarked) dari ${response.author}` },
+                                    { video: { url: a.media.play_watermark }, caption: a.metadata?.title },
                                     { quoted: m },
                                 );
                                 return;
@@ -688,7 +688,7 @@ Gunakan \`!security disable\``)
                     }
                     try {
                         // Pencarian musik
-                        const searchMusicResults = await Func.fetchJson(`${config.api.archive}/api/search/soundcloud?q=${encodeURIComponent(text)}`);
+                        const searchMusicResults = await Func.fetchJson(`${config.api.archive}/api/search/soundcloud?query=${encodeURIComponent(text)}`);
                         m.reply('Loading...');
                 
                         if (!searchMusicResults.status || !searchMusicResults.result.length) {
