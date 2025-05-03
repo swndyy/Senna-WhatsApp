@@ -13,10 +13,10 @@
   <p>
     <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-14%2B-brightgreen" alt="Node.js"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
-    <a href="https://www.archive-ui.biz.id"><img src="https://img.shields.io/badge/Demo-Available-success" alt="Live Demo"></a>
-    <a href="https://github.com/swndyy/Archive-Network"><img src="https://visitor-badge.laobi.icu/badge?page_id=swndyy.Archive-Network" alt="Visitors"></a>
-    <a href="https://github.com/swndyy/Archive-Network"><img src="https://img.shields.io/github/stars/swndyy/Archive-Network?style=social" alt="GitHub Stars"></a>
-    <a href="https://github.com/swndyy/Archive-Network/issues"><img src="https://img.shields.io/github/issues/swndyy/Archive-Network" alt="GitHub Issues"></a>
+    <a href="https://archive.lick.eu.org"><img src="https://img.shields.io/badge/Demo-Available-success" alt="Live Demo"></a>
+    <a href="https://github.com/swndyy/Senna-WhatsApp"><img src="https://visitor-badge.laobi.icu/badge?page_id=swndyy.Senna-WhatsApp" alt="Visitors"></a>
+    <a href="https://github.com/swndyy/Senna-WhatsApp"><img src="https://img.shields.io/github/stars/swndyy/Senna-WhatsApp?style=social" alt="GitHub Stars"></a>
+    <a href="https://github.com/swndyy/Senna-WhatsApp/issues"><img src="https://img.shields.io/github/issues/swndyy/Senna-WhatsApp" alt="GitHub Issues"></a>
   </p>
 </div>
 
