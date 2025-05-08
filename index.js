@@ -3,7 +3,6 @@
         default: makeWASocket,
         useMultiFileAuthState,
         jidNormalizedUser,
-        fetchLatestBaileysVersion,
         Browsers,
         proto,
         makeInMemoryStore,
@@ -18,6 +17,7 @@
         Boom
     } = require("@hapi/boom");
     const chalk = require("chalk");
+    const figlet = require("figlet");
     const readline = require("node:readline");
     const simple = require("./app/simple.js");
     const fs = require("node:fs");
@@ -31,32 +31,17 @@
     const append = require("./app/append");
     const serialize = require("./app/serialize.js");
     const config = require("./settings.js");
-    const MAX_RESTART_ATTEMPTS = 5;
-    let restartAttempts = 0;
 
     function createTmpFolder() {
-        const folderName = "tmp"; // Nama folder yang akan dibuat
-        const folderPath = path.join(__dirname, folderName); // Path folder
-
+        const folderName = "tmp";
+        const folderPath = path.join(__dirname, folderName);
         if (!fs.existsSync(folderPath)) {
             fs.mkdirSync(folderPath);
-            console.log(chalk.cyan.bold(`- Folder '${folderName}' berhasil dibuat.`));
         } else {
-            console.log(chalk.cyan.bold(`- Folder '${folderName}' sudah ada.`));
+           // Ga tau
         }
     }
 
-
-    async function restartBot() {
-        if (restartAttempts < MAX_RESTART_ATTEMPTS) {
-            restartAttempts++;
-            console.log(chalk.yellow.bold(`🔄 Mencoba untuk merestart bot... (Attempt: ${restartAttempts})`));
-            await delay(5000);
-            system();
-        } else {
-            console.log(chalk.red.bold("❌ Gagal merestart bot setelah beberapa kali percobaan. Silakan periksa log untuk detail lebih lanjut."));
-        }
-    }
     const appenTextMessage = async (m, sock, text, chatUpdate) => {
         let messages = await generateWAMessage(
             m.key.remoteJid, {
@@ -98,29 +83,51 @@
             stream: "store",
         }),
     });
+    
+    function showBanner() {
+        console.clear();
+        // const title = figlet.textSync("Welcome UI", {
+            // font: "Standard",
+            // horizontalLayout: "default",
+            // verticalLayout: "default"
+        // });
+        
+        const art = `
+${chalk.yellowBright("       ʚɞ")}   ${chalk.gray.italic("// flutter flutter...")}
 
-    console.log(chalk.green.bold(`
- --------------------------------------
-  ☘️ Welcome to the Dashboard  
-  Thank you for using this script.
-  Your support inspires us to keep improving!  
- --------------------------------------
- `));
-
-    console.log(chalk.yellow.bold("📁 Inisialisasi modul..."));
-    console.log(chalk.cyan.bold("- API Baileys Telah Dimuat"));
-    console.log(chalk.cyan.bold("- Sistem File Siap Digunakan"));
-    console.log(chalk.cyan.bold("- Database Telah Diinisialisasi"));
-    createTmpFolder();
-
-    console.log(chalk.blue.bold("\n🤖 Info Bot:"));
-    console.log(chalk.white.bold(" | GitHub: ") + chalk.cyan.bold("https://github.com/swndyy"));
-    console.log(chalk.white.bold(" | Developer: ") + chalk.green.bold("SennaYaaa"));
-    console.log(chalk.white.bold(" | Status Server: ") + chalk.green.bold("Online"));
-    console.log(chalk.white.bold(" | Versi: ") + chalk.magenta.bold(pkg.version));
-    console.log(chalk.white.bold(" | Versi Node.js: ") + chalk.magenta.bold(process.version));
-
-    console.log(chalk.blue.bold("\n🔁 Menjalankan index.js..."))
+${chalk.whiteBright("   /\\_/\\")}         ${chalk.cyanBright.bold("“Huh? A butterfly!”")}
+${chalk.whiteBright("  ( •.• )")}        ${chalk.magenta.italic("*blinks curiously*")}
+${chalk.whiteBright("  > ^ <")}          ${chalk.gray("~ meow ~")}
+        `;
+        
+        let message = '';
+        message += `${art}\n`;
+        message += `${chalk.green.bold("☘️ Welcome to the Dashboard")}\n`;
+        message += `${chalk.white("Thank you for using this script.")}\n`;
+        message += `${chalk.white("Your support inspires us to keep improving!")}\n\n`;
+        
+        message += `${chalk.yellow("📁 Initialize the modulel:")}\n`;
+        message += `${chalk.cyan("- Baileys API Has Been Loaded")}\n`;
+        message += `${chalk.cyan("- File System Ready to Use")}\n`;
+        message += `${chalk.cyan("- The tmp folder has been successfully created")}\n`;
+        message += `${chalk.cyan("- Database Has Been Initialized")}\n\n`;
+        
+        message += `${chalk.blue("🤖 Info Bot")}\n`;
+        message += `${chalk.white(" | GitHub:")} ${chalk.cyan("https://github.com/swndyy")}\n`;
+        message += `${chalk.white(" | Developer:")} ${chalk.green("SennaYaaa")}\n`;
+        message += `${chalk.white(" | Server Status:")} ${chalk.green("Online")}\n`;
+        message += `${chalk.white(" | Version:")} ${chalk.magenta(pkg.version)}\n`;
+        message += `${chalk.white(" | Version Node.js:")} ${chalk.magenta(process.version)}\n\n`;
+        
+        message += `${chalk.blue("🔁 Running index.js...")}`;
+    
+        // console.log(title);
+    
+        console.log(message);
+    }
+    
+    createTmpFolder()
+    showBanner()
 
     async function system() {
         const {
@@ -148,38 +155,92 @@
         if (!sock.authState.creds.registered) {
             console.log(
                 chalk.white.bold(
-                    "- Silakan masukkan nomor WhatsApp Anda, misalnya +628xxxx",
+                    "- Please enter your WhatsApp number, for example +628xxxx",
                 ),
             );
-            const phoneNumber = await question(chalk.green.bold(`– Nomor Anda: `));
+            const phoneNumber = await question(chalk.green.bold(`– Your Number: `));
             const code = await sock.requestPairingCode(phoneNumber);
             setTimeout(() => {
-                console.log(chalk.white.bold("- Kode Pairing Anda: " + code));
+                console.log(chalk.white.bold("- Your Pairing Code: " + code));
             }, 3000);
         }
 
-        //=====[ Pembaruan Koneksi ]======
+        //=====[ Connection Update Handler ]=====
         sock.ev.on("connection.update", async (update) => {
-            const {
-                connection,
-                lastDisconnect
-            } = update;
-            if (connection === "close") {
-                const reason = new Boom(lastDisconnect?.error)?.output.statusCode;
-                console.log(chalk.red.bold(`Koneksi ditutup: ${reason}`));
-                await restartBot(); // Panggil fungsi restart
-            } else if (connection === "connecting") {
-                console.log(chalk.blue.bold("Menghubungkan ke WhatsApp..."));
-            } else if (connection === "open") {
-                console.log(chalk.green.bold("Bot berhasil terhubung."));
-                restartAttempts = 0; // Reset attempts saat berhasil terhubung
+          const { connection, lastDisconnect } = update;
+        
+          if (connection === "close") {
+            const reason = new Boom(lastDisconnect?.error)?.output.statusCode;
+        
+            switch (reason) {
+              case DisconnectReason.badSession:
+                console.log(chalk.red.bold("[!] Invalid session file. Please delete the session and scan again. Trying Reconnecting..."));
+                system();
+                break;
+              case DisconnectReason.connectionClosed:
+                console.log(chalk.yellow.bold("[!] Connection closed. Reconnecting..."));
+                system();
+                break;
+              case DisconnectReason.connectionLost:
+                console.log(chalk.yellow.bold("[!] Connection lost. Attempting to reconnect..."));
+                system();
+                break;
+              case DisconnectReason.connectionReplaced:
+                console.log(chalk.red.bold("[!] Connection replaced. Another session has been opened."));
+                await sock.logout();
+                break;
+              case DisconnectReason.loggedOut:
+                console.log(chalk.red.bold("[!] Device logged out. Please scan again to continue."));
+                await sock.logout();
+                break;
+              case DisconnectReason.restartRequired:
+                console.log(chalk.green.bold("[!] Restart required. Rebooting..."));
+                system();
+                break;
+              case DisconnectReason.timedOut:
+                console.log(chalk.yellow.bold("[!] Connection timed out. Trying to reconnect..."));
+                system();
+                break;
+              default:
+                console.log(chalk.red.bold(`[!] Unknown disconnect reason: ${lastDisconnect?.error || "Unknown error"}`));
+                break;
             }
+        
+          } else if (connection === "connecting") {
+            console.log(chalk.blue.bold("[~] Connecting to WhatsApp..."));
+        
+          } else if (connection === "open") {
+            console.log(chalk.green.bold("[+] Successfully connected to WhatsApp."));
+        
+            const currentTime = moment().tz("Asia/Jakarta");
+            const pingSpeed = new Date() - currentTime;
+            const formattedPingSpeed = pingSpeed < 0 ? "N/A" : `${pingSpeed}ms`;
+        
+            const infoMsg = "*Connection Report*\n\n" +
+              "Your device has successfully connected to WhatsApp. Below is the current session information:\n\n" +
+              "*─── System Information ───*\n" +
+              `> *User ID*: ${sock.user.id}\n` +
+              `> *Username*: ${sock.user.name}\n` +
+              `> *Ping*: ${formattedPingSpeed}\n` +
+              `> *Date*: ${currentTime.format("dddd, MMMM Do YYYY")}\n` +
+              `> *Time*: ${currentTime.format("HH:mm:ss")}\n` +
+              `> *Time Zone*: ${currentTime.format("z")}\n\n` +
+              "*Status*: ✅ Connection is stable and operational.";
+            for (let owner of config.owner) {
+                await sock.sendMessage(
+                  owner + "@s.whatsapp.net",
+                  {
+                    text: infoMsg,
+                    mentions: [],
+                  },
+                  { quoted: null }
+                );
+            }
+          }
         });
 
-        //=====[ Setelah Pembaruan Koneksi ]========//
-        sock.ev.on("creds.update", async (creds) => {
-            await saveCreds(creds);
-        });
+        //=====[ After Connection Update ]========//
+        sock.ev.on("creds.update", saveCreds);
 
         sock.ev.on("contacts.update", (update) => {
             for (let contact of update) {
@@ -301,7 +362,7 @@
                                 }
                             });
                     } else if (groupUpdate.action === "promote") {
-                        let promoteMessage = `Selamat @${participant.split("@")[0]} !!\n\n> Anda telah dipromosikan menjadi Admin Group.`;
+                        let promoteMessage = `Congratulations to @${participant.split("@")[0]} !!\n\n> You have been promoted to Group Admin.`;
 
                         sock.sendMessage(
                             groupUpdate.id, {
@@ -323,7 +384,7 @@
  
                     } else if (groupUpdate.action === "demote") {
 
-                        let demoteMessage = `Terimakasih @${participant.split("@")[0]} !!\n\n> Termakasih telah menjadi bagian admin di group ini.`;
+                        let demoteMessage = `Thank You @${participant.split("@")[0]} !!\n\n> Thank you for being an admin in this group.`;
 
                         sock.sendMessage(
                             groupUpdate.id, {
